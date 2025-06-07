@@ -1,0 +1,31 @@
+name: Go
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [1.24.x]
+  
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.x'
+        
+    - name: Display Go version
+      run: go version
+
+    - name: Install dependencies
+      run: go mod tidy
+      
+    - name: Run integration tests with server
+      run: |
+        CGO_ENABLED=0 GOOS=linux go run ./cmd/app/ &
+        timeout 30s bash -c 'until curl -s http://localhost:7540 >/dev/null; do sleep 1; done'
+        go test ./tests
